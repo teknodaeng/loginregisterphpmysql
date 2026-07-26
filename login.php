@@ -1,85 +1,61 @@
 <?php
+/**
+ * Login Page
+ * 
+ * Handles user authentication and login functionality.
+ */
+
+declare(strict_types=1);
+
 // Start the session at the very beginning
 session_start();
 
-// Include database connection
-require_once 'db.php';
+// Include required files
+require_once 'config/database.php';
+require_once 'includes/auth.php';
+require_once 'repositories/UserRepository.php';
 
 // Define variables and initialize with empty values
-$username = $password = "";
-$username_err = $password_err = $login_err = "";
+$username = $password = '';
+$username_err = $password_err = $login_err = '';
 
 // Processing form data when form is submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate username
-    if (empty(trim($_POST["username"]))) {
-        $username_err = "Please enter username.";
+    $usernameValidation = validateUsername($_POST['username'] ?? '');
+    if (!$usernameValidation['valid']) {
+        $username_err = $usernameValidation['error'];
     } else {
-        $username = trim($_POST["username"]);
+        $username = trim($_POST['username']);
     }
 
     // Validate password
-    if (empty(trim($_POST["password"]))) {
-        $password_err = "Please enter your password.";
+    $passwordValidation = validatePassword($_POST['password'] ?? '');
+    if (!$passwordValidation['valid']) {
+        $password_err = $passwordValidation['error'];
     } else {
-        $password = trim($_POST["password"]);
+        $password = trim($_POST['password']);
     }
 
     // Check credentials if there are no input errors
     if (empty($username_err) && empty($password_err)) {
-        // Prepare a select statement
-        $sql = "SELECT id, username, password FROM users WHERE username = ?";
+        // Verify user credentials using repository
+        $user = verifyCredentials($username, $password);
+        
+        if ($user !== null) {
+            // Password is correct, store data in session variables
+            $_SESSION['loggedin'] = true;
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
 
-        if ($stmt = $conn->prepare($sql)) {
-            // Bind variables to the prepared statement as parameters
-            $stmt->bind_param("s", $param_username);
-
-            // Set parameters
-            $param_username = $username;
-
-            // Attempt to execute the prepared statement
-            if ($stmt->execute()) {
-                // Store result
-                $stmt->store_result();
-
-                // Check if username exists, if yes then verify password
-                if ($stmt->num_rows == 1) {
-                    // Bind result variables
-                    $stmt->bind_result($id, $db_username, $hashed_password);
-                    if ($stmt->fetch()) {
-                        if (password_verify($password, $hashed_password)) {
-                            // Password is correct, so start a new session
-                            // session_start(); // Already started at the top
-
-                            // Store data in session variables
-                            $_SESSION["loggedin"] = true; // A general logged-in flag
-                            $_SESSION["user_id"] = $id;
-                            $_SESSION["username"] = $db_username;
-
-                            // Redirect user to dashboard page
-                            header("Location: dashboard.php");
-                            exit; // Important to prevent further script execution
-                        } else {
-                            // Password is not valid
-                            $login_err = "Invalid username or password.";
-                        }
-                    }
-                } else {
-                    // Username doesn't exist
-                    $login_err = "Invalid username or password.";
-                }
-            } else {
-                $login_err = "Oops! Something went wrong. Please try again later.";
-            }
-            // Close statement
-            $stmt->close();
+            // Redirect user to dashboard page
+            header('Location: dashboard.php');
+            exit;
         } else {
-            $login_err = "Database error: Could not prepare statement.";
+            // Invalid credentials
+            $login_err = 'Invalid username or password.';
         }
     }
-    // Close connection
-    // $conn->close(); // It's often better to let PHP close it at the end of script execution
 }
 ?>
 
@@ -100,10 +76,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="alert"><?php echo $login_err; ?></div>
         <?php endif; ?>
 
-        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+        <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" method="post">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" name="username" id="username" value="<?php echo htmlspecialchars($username); ?>">
+                <input type="text" name="username" id="username" value="<?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php if (!empty($username_err)): ?>
                     <span class="error"><?php echo $username_err; ?></span>
                 <?php endif; ?>
