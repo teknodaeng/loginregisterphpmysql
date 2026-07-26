@@ -1,17 +1,21 @@
 <?php
-// Start the session at the very beginning
-session_start();
+/**
+ * Dashboard Page
+ * 
+ * Displays user dashboard after successful login.
+ */
 
-// Check if the user is logged in.
-// The 'loggedin' session variable is set in login.php upon successful login.
-// Also check for 'username' to be safe, though 'loggedin' should be the primary check.
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true || empty($_SESSION["username"])) {
-    // If not logged in, redirect to login page
-    header("Location: login.php");
-    exit; // Important to prevent further script execution
-}
+declare(strict_types=1);
 
-// If the user is logged in, display the dashboard content
+// Include required files
+require_once 'includes/auth.php';
+
+// Require authentication - redirects if not logged in
+requireLogin();
+
+// Get user information
+$username = getCurrentUsername();
+$userId = getCurrentUserId();
 ?>
 
 <!DOCTYPE html>
@@ -20,20 +24,17 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true || empty($_S
     <meta charset="UTF-8">
     <title>Dashboard</title>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <!-- Removed inline styles -->
 </head>
 <body>
     <div class="container">
-        <h1>Welcome, <?php echo htmlspecialchars($_SESSION["username"]); ?>!</h1>
+        <h1>Welcome, <?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?>!</h1>
         <p>This is your dashboard. You have successfully logged in.</p>
         <p>Here, you can manage your account settings, view your activity, or access other features of the application.</p>
         
-        <!-- Placeholder for more dashboard content -->
         <div>
             <h2>Your Profile</h2>
-            <p><strong>Username:</strong> <?php echo htmlspecialchars($_SESSION["username"]); ?></p>
-            <p><strong>User ID:</strong> <?php echo htmlspecialchars($_SESSION["user_id"]); ?></p>
-            <!-- Add more profile information here if available and needed -->
+            <p><strong>Username:</strong> <?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><strong>User ID:</strong> <?php echo htmlspecialchars($userId, ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
 
         <a href="logout.php" class="logout-link">Logout</a>
